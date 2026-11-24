@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=EdgeOS Kurulum Yardımcısı
+GenericName=Edge OS by Origin Edge Kurulum Sihirbazı
+Comment=Edge OS by Origin Edge zaman, dil, klavye, Origin Edge tema ve uygulama yapılandırma yardımcısı
+Exec=/usr/bin/edgeos-setup-wizard
+Icon=edgeos-logo
+Terminal=false
+Type=Application
+Categories=System;Settings;
+StartupNotify=true

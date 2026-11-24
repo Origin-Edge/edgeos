@@ -1,0 +1,10 @@
+# bootc-image-builder: Anaconda kurulum ISO'su
+[customizations.installer.kickstart]
+contents = """
+lang tr_TR.UTF-8
+keyboard --xlayouts='tr'
+timezone Europe/Istanbul --utc
+"""
+
+[customizations.installer.modules]
+enable = ["org.fedoraproject.Anaconda.Modules.Localization", "org.fedoraproject.Anaconda.Modules.Users", "org.fedoraproject.Anaconda.Modules.Storage"]

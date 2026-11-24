@@ -1,0 +1,5 @@
+cikti/
+*.iso
+*.qcow2
+*.raw
+deneme-vm/

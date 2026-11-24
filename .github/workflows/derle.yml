@@ -1,0 +1,70 @@
+name: EdgeOS imajı
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**.md"]
+  schedule:
+    - cron: "30 2 * * *"     # her gece: Fedora güncellemeleri EdgeOS'a geçsin
+  workflow_dispatch:
+    inputs:
+      iso:
+        description: "Kurulum ISO'su da üretilsin mi?"
+        type: boolean
+        default: false
+
+env:
+  IMAJ: ghcr.io/${{ github.repository_owner }}/edgeos
+
+jobs:
+  imaj:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Disk alanı aç
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+      - name: İmajı derle
+        run: |
+          IMAJ_KUCUK=$(echo "$IMAJ" | tr '[:upper:]' '[:lower:]')
+          echo "IMAJ_KUCUK=$IMAJ_KUCUK" >> "$GITHUB_ENV"
+          sudo podman build --build-arg EDGEOS_SURUM=1.0.$(date +%Y%m%d) -t "$IMAJ_KUCUK:latest" -t "$IMAJ_KUCUK:$(date +%Y%m%d)" .
+      - name: GHCR'a gönder
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | sudo podman login ghcr.io -u "${{ github.actor }}" --password-stdin
+          sudo podman push "$IMAJ_KUCUK:latest"
+          sudo podman push "$IMAJ_KUCUK:$(date +%Y%m%d)"
+
+  iso:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.iso }}
+    needs: imaj
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Disk alanı aç
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+      - name: Kurulum ISO'su üret
+        run: |
+          IMAJ_KUCUK=$(echo "$IMAJ" | tr '[:upper:]' '[:lower:]')
+          echo "${{ secrets.GITHUB_TOKEN }}" | sudo podman login ghcr.io -u "${{ github.actor }}" --password-stdin
+          sudo podman pull "$IMAJ_KUCUK:latest"
+          mkdir -p cikti
+          sudo podman run --rm --privileged --security-opt label=type:unconfined_t \
+            -v ./disk_config/iso.toml:/config.toml:ro -v ./cikti:/output \
+            -v /var/lib/containers/storage:/var/lib/containers/storage \
+            quay.io/centos-bootc/bootc-image-builder:latest \
+            --type anaconda-iso --rootfs btrfs --use-librepo=True "$IMAJ_KUCUK:latest"
+          sudo mv cikti/bootiso/install.iso "cikti/EdgeOS-$(date +%Y%m%d)-x86_64.iso"
+          (cd cikti && sha256sum EdgeOS-*.iso > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: edgeos-iso
+          path: |
+            cikti/EdgeOS-*.iso
+            cikti/SHA256SUMS
+          retention-days: 7

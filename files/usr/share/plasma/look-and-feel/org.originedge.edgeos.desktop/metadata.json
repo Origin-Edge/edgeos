@@ -1,0 +1,17 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "destek@oedge.xyz",
+                "Name": "Origin Edge"
+            }
+        ],
+        "Category": "",
+        "Description": "Edge OS by Origin Edge Official KDE Plasma Theme",
+        "Id": "org.originedge.edgeos.desktop",
+        "License": "GPLv3",
+        "Name": "Origin Edge (Edge OS)",
+        "Website": "https://oedge.xyz"
+    }
+}

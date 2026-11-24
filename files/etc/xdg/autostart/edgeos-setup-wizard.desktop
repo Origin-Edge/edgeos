@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=EdgeOS Kurulum Yardımcısı
+Exec=/usr/bin/edgeos-setup-wizard --ilk-acilis
+Icon=edgeos-logo
+OnlyShowIn=KDE;
+X-KDE-autostart-phase=2

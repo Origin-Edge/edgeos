@@ -1,0 +1,23 @@
+[Icon Theme]
+Name=Origin Edge Icons
+Comment=Edge OS by Origin Edge — Unslop Graphite Line Icon Theme
+Inherits=breeze-dark,breeze,hicolor
+Example=folder
+FollowsColorScheme=true
+DisplayDepth=32
+
+Directories=apps/scalable,places/scalable
+
+[apps/scalable]
+Size=64
+Context=Applications
+MinSize=16
+MaxSize=512
+Type=Scalable
+
+[places/scalable]
+Size=64
+Context=Places
+MinSize=16
+MaxSize=512
+Type=Scalable

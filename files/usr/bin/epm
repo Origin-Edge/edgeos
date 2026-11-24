@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# epm — Edge Package Manager (EdgeOS by Origin Edge)
+# Uygulamalar: Flatpak (Flathub). Sistem: bootc (atomik güncelleme ve geri alma).
+set -euo pipefail
+
+C_RESET="\033[0m"; C_BOLD="\033[1m"
+C_GREEN="\033[38;2;76;195;138m"; C_RED="\033[38;2;229;72;77m"; C_MUTED="\033[38;2;133;133;139m"
+
+hata() { echo -e "${C_RED}Hata:${C_RESET} $*" >&2; exit 1; }
+bilgi() { echo -e "${C_GREEN}==> [epm]${C_RESET} $*"; }
+
+flathub_hazir() {
+    flatpak remotes --system --columns=name 2>/dev/null | grep -qx flathub && return 0
+    bilgi "Flathub deposu ekleniyor..."
+    flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+}
+
+# Kısa adları Flathub kimliğine çevirir; bilinmeyeni Flathub'da arar.
+kimlik_bul() {
+    local q="${1,,}"
+    case "$q" in
+        chrome|google-chrome) echo com.google.Chrome ;;
+        chromium)             echo org.chromium.Chromium ;;
+        firefox)              echo org.mozilla.firefox ;;
+        vlc)                  echo org.videolan.VLC ;;
+        code|vscode)          echo com.visualstudio.code ;;
+        discord)              echo com.discordapp.Discord ;;
+        spotify)              echo com.spotify.Client ;;
+        steam)                echo com.valvesoftware.Steam ;;
+        gimp)                 echo org.gimp.GIMP ;;
+        obs|obs-studio)       echo com.obsproject.Studio ;;
+        blender)              echo org.blender.Blender ;;
+        telegram)             echo org.telegram.desktop ;;
+        libreoffice)          echo org.libreoffice.LibreOffice ;;
+        onlyoffice)           echo org.onlyoffice.desktopeditors ;;
+        inkscape)             echo org.inkscape.Inkscape ;;
+        krita)                echo org.kde.krita ;;
+        kdenlive)             echo org.kde.kdenlive ;;
+        audacity)             echo org.audacityteam.Audacity ;;
+        *.*.*)                echo "$1" ;;
+        *)
+            local bulunan
+            bulunan=$(flatpak search --columns=application "$1" 2>/dev/null | awk 'NF==1 && /\./ {print $1; exit}' || true)
+            echo "${bulunan:-$1}"
+            ;;
+    esac
+}
+
+kullanim() {
+    echo -e "${C_BOLD}epm${C_RESET} — Edge Package Manager (EdgeOS)"
+    echo -e "${C_MUTED}Uygulamalar Flathub'dan, sistem güncellemeleri EdgeOS imajından gelir.${C_RESET}\n"
+    echo -e "${C_BOLD}Uygulamalar${C_RESET}"
+    echo "  epm install <ad>        Uygulama kurar (ör. epm install vlc)"
+    echo "  epm remove <ad>         Uygulamayı kaldırır"
+    echo "  epm search <sorgu>      Flathub'da arar"
+    echo "  epm list                Kurulu uygulamaları listeler"
+    echo "  epm update              Uygulamaları ve sistemi günceller"
+    echo -e "\n${C_BOLD}Sistem${C_RESET}"
+    echo "  epm sistem              Sistem sürümünü ve bekleyen güncellemeyi gösterir"
+    echo "  epm sistem-guncelle     Yeni EdgeOS imajını indirir (yeniden başlatınca geçer)"
+    echo "  epm geri-al             Bir önceki EdgeOS sürümüne döner (yeniden başlatınca)"
+}
+
+komut="${1:-help}"; shift || true
+case "$komut" in
+    install|i|add)
+        [[ -n "${1:-}" ]] || hata "Kurulacak uygulamayı yazın. Örnek: epm install vlc"
+        if [[ "$1" == *.flatpak && -f "$1" ]]; then
+            bilgi "Yerel Flatpak paketi kuruluyor: $1"
+            flatpak install --system -y "$1"; exit 0
+        fi
+        flathub_hazir
+        kimlik=$(kimlik_bul "$1")
+        bilgi "'$1' → $kimlik Flathub'dan kuruluyor..."
+        flatpak install --system -y --noninteractive flathub "$kimlik"
+        echo -e "${C_GREEN}✓${C_RESET} Kuruldu: $kimlik"
+        ;;
+    remove|rm|uninstall)
+        [[ -n "${1:-}" ]] || hata "Kaldırılacak uygulamayı yazın."
+        kimlik=$(kimlik_bul "$1")
+        bilgi "$kimlik kaldırılıyor..."
+        flatpak uninstall --system -y --noninteractive "$kimlik"
+        ;;
+    search|find|s)
+        [[ -n "${1:-}" ]] || hata "Aranacak kelimeyi yazın. Örnek: epm search vlc"
+        flathub_hazir
+        flatpak search "$1" | head -n 20
+        ;;
+    list|ls)
+        flatpak list --app --columns=name,application,version
+        ;;
+    update|upgrade|up)
+        bilgi "Uygulamalar güncelleniyor..."
+        flatpak update --system -y --noninteractive || true
+        bilgi "Sistem güncellemesi denetleniyor..."
+        pkexec bootc upgrade || true
+        ;;
+    sistem|status|info)
+        bootc status --booted 2>/dev/null || rpm-ostree status
+        ;;
+    sistem-guncelle)
+        pkexec bootc upgrade
+        echo -e "${C_MUTED}Güncelleme yeniden başlatınca devreye girer.${C_RESET}"
+        ;;
+    geri-al|rollback)
+        pkexec bootc rollback
+        echo -e "${C_MUTED}Yeniden başlatınca bir önceki EdgeOS sürümü açılır.${C_RESET}"
+        ;;
+    *) kullanim ;;
+esac

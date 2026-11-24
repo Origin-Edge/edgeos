@@ -1,0 +1,8 @@
+{
+    "KPlugin": {
+        "Authors": [{ "Email": "destek@oedge.xyz", "Name": "Origin Edge" }],
+        "Id": "EdgeOS",
+        "License": "CC-BY-SA-4.0",
+        "Name": "EdgeOS"
+    }
+}
