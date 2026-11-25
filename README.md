@@ -14,8 +14,24 @@ Origin Edge'in işletim sistemi. Fedora Kinoite (KDE Plasma, atomik) üstüne Or
 | Kurulum yardımcısı, EdgeFile (Qt 6) | `src/` |
 | `epm` (Flathub + bootc) | `files/usr/bin/epm` |
 | ORBITAL, Nate Browser | Derlemede Edge App Store kataloğundan, SHA256 doğrulamalı (`build_files/uygulamalari-al.py`) |
-| Tema: renk şeması, simgeler, duvar kâğıdı, Plasma görünümü | `files/usr/share/` |
+| Tema: açık + koyu renk şeması, simge teması, global tema, duvar kâğıdı | `files/usr/share/` (üreticiler: `tasarim/`) |
 | Kimlik, Flathub, otomatik güncelleme | `build_files/build.sh` |
+
+## Görünüm
+Origin Edge **Ürün** tasarım dili: slate nötrler, tek vurgu `blue-600`, Inter. İki görünüm var:
+
+| | Açık | Koyu |
+|---|---|---|
+| Global tema | `org.originedge.edgeos.desktop` | `org.originedge.edgeos.koyu.desktop` |
+| Renk şeması | `EdgeOS` | `EdgeOSKoyu` |
+| Simge teması | `EdgeOS` | `EdgeOS-Koyu` |
+
+Kurulum yardımcısındaki **Görünüm** adımından ya da Sistem Ayarları → Global Tema'dan seçilir; "Otomatik" gün ışığına göre geçer.
+Simgeler ve renkler elle düzenlenmez, üreticiden çıkar:
+```sh
+python3 tasarim/simgeler.py   # files/usr/share/icons/EdgeOS{,-Koyu}
+python3 tasarim/tema.py       # renk şemaları + global temalar
+```
 
 ## Derleme
 ```sh

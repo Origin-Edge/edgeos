@@ -68,6 +68,10 @@ EOF
 dnf -y remove --noautoremove plasma-setup plasma-welcome plasma-welcome-fedora
 touch /etc/plasma-setup-done
 
+# Giriş ekranı (plasma-login-manager) duvar kâğıdı: Fedora yerine EdgeOS
+sed -i "s#/usr/share/wallpapers/Fedora/#/usr/share/wallpapers/EdgeOS/#g" /usr/lib/plasmalogin/defaults.conf
+grep -q "wallpapers/EdgeOS/" /usr/lib/plasmalogin/defaults.conf
+
 # Saat dilimi İstanbul (dil, klavye, bilgisayar adı files/etc altından gelir)
 ln -sf ../usr/share/zoneinfo/Europe/Istanbul /etc/localtime
 
@@ -76,7 +80,7 @@ dnf -y install langpacks-tr glibc-langpack-tr rsms-inter-fonts jetbrains-mono-fo
 dnf clean all
 
 # Simge ve masaüstü önbellekleri
-gtk-update-icon-cache -f /usr/share/icons/OriginEdge-Icons 2>/dev/null || true
+for t in EdgeOS EdgeOS-Koyu; do gtk-update-icon-cache -f /usr/share/icons/$t; done
 update-desktop-database /usr/share/applications || true
 
 rm -rf /tmp/* /var/tmp/* /var/cache/* /var/log/* /var/lib/dnf

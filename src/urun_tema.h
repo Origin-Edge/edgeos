@@ -2,6 +2,25 @@
 // Kurulum yardımcısı ve EdgeFile aynı temayı kullanır.
 #pragma once
 #include <QString>
+#include <QGuiApplication>
+#include <QPalette>
+#include <QStyleHints>
+
+// Sistem (Plasma) koyu temada mı? Önce Qt'nin renk şeması ipucu, yoksa pencere renginin parlaklığı.
+inline bool sistemKoyu()
+{
+    const auto cs = QGuiApplication::styleHints()->colorScheme();
+    if (cs == Qt::ColorScheme::Dark) return true;
+    if (cs == Qt::ColorScheme::Light) return false;
+    return QGuiApplication::palette().window().color().lightness() < 128;
+}
+
+// Origin Edge işareti: açık zeminde lacivert, koyu zeminde beyaz.
+inline QString logoYolu(bool koyu)
+{
+    return koyu ? QStringLiteral("/usr/share/pixmaps/origin-edge-mark.svg")
+                : QStringLiteral("/usr/share/pixmaps/origin-edge-mark-koyu.svg");
+}
 
 inline QString urunTema(bool koyu = false)
 {
@@ -21,6 +40,7 @@ inline QString urunTema(bool koyu = false)
     const QString maviCiz = koyu ? "#1e3a8a" : "#bfdbfe";   // blue-200
     const QString kirmizi = koyu ? "#f87171" : "#dc2626";
     const QString kirmiziZ= koyu ? "#450a0a" : "#fef2f2";
+    const QString yesil   = koyu ? "#4ade80" : "#16a34a";
 
     QString q = R"(
         QMainWindow, QWidget#rootWidget { background-color: @zemin; color: @yazi;
@@ -78,12 +98,24 @@ inline QString urunTema(bool koyu = false)
         QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
         QScrollBar::handle:vertical { background: @cizgi2; border-radius: 4px; min-height: 30px; }
         QScrollBar::add-line, QScrollBar::sub-line { height: 0px; }
+        QSplitter::handle { background: transparent; }
+        QLabel#heroTitle { font-size: 34px; font-weight: 600; color: @yazi; }
+        QLabel#strongLabel { color: @yazi; font-weight: 500; }
+        QLabel#okText { color: @yesil; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+        QLabel#iconTile { background-color: @maviZem; border: 1px solid @maviCiz; border-radius: 10px; }
+        QToolButton#themeCard { background-color: @yuzey; color: @yazi; border: 1px solid @cizgi; border-radius: 14px;
+            padding: 10px; font-size: 13px; font-weight: 600; }
+        QToolButton#themeCard:hover { border-color: @cizgi2; background-color: @hafif; }
+        QToolButton#themeCard[secili="true"] { border: 2px solid @mavi; background-color: @maviZem; color: @maviYazi; }
+        QMenu { background-color: @yuzey; color: @yazi; border: 1px solid @cizgi; border-radius: 8px; padding: 4px; }
+        QMenu::item { padding: 6px 16px; border-radius: 5px; font-size: 13px; }
+        QMenu::item:selected { background-color: @hafif; color: @yazi; }
     )";
     const QList<QPair<QString, QString>> jeton = {
         {"@maviKoyu", maviKoyu}, {"@maviZem", maviZem}, {"@maviYazi", maviYazi}, {"@maviCiz", maviCiz},
         {"@kirmiziZ", kirmiziZ}, {"@kirmizi", kirmizi}, {"@cizgi2", cizgi2}, {"@cizgi", cizgi},
         {"@zemin", zemin}, {"@yuzey", yuzey}, {"@kenar", kenar}, {"@yazi", yazi}, {"@soluk", soluk},
-        {"@hafif", hafif}, {"@mavi", mavi}};
+        {"@hafif", hafif}, {"@yesil", yesil}, {"@mavi", mavi}};
     for (const auto &j : jeton) q.replace(j.first, j.second);
     return q;
 }

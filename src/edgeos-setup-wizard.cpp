@@ -22,6 +22,10 @@
 #include <QPainter>
 #include <QPixmap>
 #include <QSvgRenderer>
+#include <QToolButton>
+#include <QPainterPath>
+#include <QStyleHints>
+#include <QTimer>
 #include "urun_tema.h"
 
 static QString runCmd(const QString &cmd) {
@@ -51,7 +55,8 @@ public:
         setMinimumSize(960, 640);
         resize(980, 660);
 
-        setStyleSheet(urunTema(false));
+        koyu = sistemKoyu();
+        setStyleSheet(urunTema(koyu));
 
         QWidget *root = new QWidget(this);
         root->setObjectName("rootWidget");
@@ -72,16 +77,9 @@ public:
         QHBoxLayout *brandRow = new QHBoxLayout();
         brandRow->setContentsMargins(6, 0, 6, 0);
         brandRow->setSpacing(10);
-        QLabel *logoLbl = new QLabel();
+        logoLbl = new QLabel();
         logoLbl->setFixedSize(26, 26);
-        if (QFile::exists("/usr/share/pixmaps/origin-edge-mark-koyu.svg")) {
-            QSvgRenderer r(QStringLiteral("/usr/share/pixmaps/origin-edge-mark-koyu.svg"));
-            QPixmap pm(26, 26);
-            pm.fill(Qt::transparent);
-            QPainter p(&pm);
-            r.render(&p);
-            logoLbl->setPixmap(pm);
-        }
+        logoCiz();
         QLabel *bTitle = new QLabel("EdgeOS");
         bTitle->setObjectName("wordmark");
         QLabel *bSub = new QLabel("Origin Edge");
@@ -103,7 +101,7 @@ public:
             {"Hoş geldiniz", "<path d='M7 10v12'/><path d='M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z'/>"},
             {"Sistem özeti", "<rect width='18' height='18' x='3' y='3' rx='2'/><path d='M3 9h18'/><path d='M9 21V9'/>"},
             {"Zaman, dil ve klavye", "<circle cx='12' cy='12' r='10'/><polyline points='12 6 12 12 16 14'/>"},
-            {"Görünüm ve ikonlar", "<circle cx='12' cy='12' r='4'/><path d='M12 2v2'/><path d='M12 20v2'/><path d='m4.93 4.93 1.41 1.41'/><path d='m17.66 17.66 1.41 1.41'/><path d='M2 12h2'/><path d='M20 12h2'/>"},
+            {"Görünüm", "<circle cx='12' cy='12' r='4'/><path d='M12 2v2'/><path d='M12 20v2'/><path d='m4.93 4.93 1.41 1.41'/><path d='m17.66 17.66 1.41 1.41'/><path d='M2 12h2'/><path d='M20 12h2'/>"},
             {"Paket yöneticisi (epm)", "<path d='m7.5 4.27 9 5.15'/><path d='M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z'/><path d='m3.3 7 8.7 5 8.7-5'/><path d='M12 22V12'/>"},
             {"Yerleşik uygulamalar", "<rect width='7' height='7' x='3' y='3' rx='1'/><rect width='7' height='7' x='14' y='3' rx='1'/><rect width='7' height='7' x='14' y='14' rx='1'/><rect width='7' height='7' x='3' y='14' rx='1'/>"},
             {"Ağ ve oturum", "<path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10'/>"}
@@ -126,7 +124,8 @@ public:
         sbLay->setContentsMargins(14, 12, 14, 12);
         sbLay->setSpacing(4);
         QLabel *sb0 = new QLabel("EdgeOS by Origin Edge");
-        sb0->setStyleSheet("font-size: 12px; color: #0f172a; font-weight: 500;");
+        sb0->setObjectName("strongLabel");
+        sb0->setStyleSheet("font-size: 12px;");
         QLabel *sb1 = new QLabel("Linux " + QSysInfo::kernelVersion().section('-', 0, 0) + " · Fedora");
         sb1->setObjectName("monoMeta");
         QLabel *sb2 = new QLabel("epm · Flathub");
@@ -184,9 +183,58 @@ public:
         mainLayout->addLayout(rightLayout, 1);
 
         goToPage(0);
+
+        // Plasma'da açık/koyu değişince kendimizi de güncelle
+        connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, [this]() { temaYenile(); });
+    }
+
+protected:
+    void changeEvent(QEvent *e) override {
+        if (e->type() == QEvent::ApplicationPaletteChange || e->type() == QEvent::ThemeChange)
+            QTimer::singleShot(0, this, [this]() { temaYenile(); });
+        QMainWindow::changeEvent(e);
     }
 
 private:
+    bool koyu = false;
+    QLabel *logoLbl = nullptr;
+    QList<QToolButton*> temaKartlari;
+
+    void logoCiz() {
+        const QString yol = logoYolu(koyu);
+        if (!logoLbl || !QFile::exists(yol)) return;
+        QSvgRenderer r(yol);
+        const qreal dpr = qApp->devicePixelRatio();
+        QPixmap pm(int(26 * dpr), int(26 * dpr));
+        pm.setDevicePixelRatio(dpr);
+        pm.fill(Qt::transparent);
+        QPainter p(&pm);
+        r.render(&p, QRectF(0, 0, 26, 26));
+        logoLbl->setPixmap(pm);
+    }
+
+    void temaYenile() {
+        const bool k = sistemKoyu();
+        if (k == koyu) return;
+        koyu = k;
+        setStyleSheet(urunTema(koyu));
+        logoCiz();
+    }
+
+    // Şu an seçili EdgeOS görünümü: "acik", "koyu" ya da "otomatik"
+    static QString seciliGorunum() {
+        if (runCmd("kreadconfig6 --file kdeglobals --group KDE --key AutomaticLookAndFeel") == "true") return "otomatik";
+        const QString lnf = runCmd("kreadconfig6 --file kdeglobals --group KDE --key LookAndFeelPackage");
+        return lnf.endsWith(".koyu.desktop") ? "koyu" : "acik";
+    }
+
+    void temaKartiSec(const QString &id) {
+        for (auto *k : temaKartlari) {
+            k->setProperty("secili", k->property("gorunum").toString() == id ? "true" : "false");
+            k->style()->unpolish(k);
+            k->style()->polish(k);
+        }
+    }
     QStackedWidget *pages;
     QList<QPushButton*> navButtons;
     QPushButton *prevBtn;
@@ -228,7 +276,8 @@ private:
 
         QLabel *title = new QLabel("EdgeOS'a hoş geldiniz");
         title->setAlignment(Qt::AlignCenter);
-        title->setStyleSheet("color: #0f172a; font-size: 34px; font-weight: 600; letter-spacing: -0.6px;");
+        title->setObjectName("heroTitle");
+        title->setStyleSheet("letter-spacing: -0.6px;");
         lay->addWidget(title);
         lay->addSpacing(12);
 
@@ -256,12 +305,13 @@ private:
             QLabel *tile = new QLabel();
             tile->setFixedSize(36, 36);
             tile->setAlignment(Qt::AlignCenter);
-            tile->setStyleSheet("background-color: #eff6ff; border: 1px solid #dbeafe; border-radius: 10px;");
-            tile->setPixmap(lucideIcon(svg, "#2563eb").pixmap(18, 18));
+            tile->setObjectName("iconTile");
+            tile->setPixmap(lucideIcon(svg, koyu ? "#93c5fd" : "#2563eb").pixmap(18, 18));
             v->addWidget(tile);
             v->addSpacing(6);
             QLabel *l1 = new QLabel(b);
-            l1->setStyleSheet("color: #0f172a; font-size: 14px; font-weight: 600;");
+            l1->setObjectName("strongLabel");
+            l1->setStyleSheet("font-size: 14px; font-weight: 600;");
             QLabel *l2 = new QLabel(a);
             l2->setObjectName("subtitle");
             l2->setWordWrap(true);
@@ -363,7 +413,8 @@ private:
             QLabel *kl = new QLabel(k);
             kl->setObjectName("subtitle");
             QLabel *vl = new QLabel(v);
-            vl->setStyleSheet("color: #0f172a; font-size: 13px; font-weight: 500;");
+            vl->setObjectName("strongLabel");
+            vl->setStyleSheet("font-size: 13px;");
             QLabel *tl = new QLabel(tag);
             tl->setObjectName("keycap");
             grid->addWidget(kl, r, 0);
@@ -416,7 +467,7 @@ private:
         lay->addLayout(hdr);
 
         QLabel *feedbackLbl = new QLabel("");
-        feedbackLbl->setStyleSheet("color: #16a34a; font-family: 'JetBrains Mono', monospace; font-size: 12px;");
+        feedbackLbl->setObjectName("okText");
 
         QFrame *tzCard = new QFrame();
         tzCard->setObjectName("card");
@@ -533,86 +584,112 @@ private:
 
         QVBoxLayout *hdr = new QVBoxLayout();
         hdr->setSpacing(6);
-        QLabel *title = new QLabel("Görünüm ve ikonlar");
+        QLabel *title = new QLabel("Görünüm");
         title->setObjectName("pageTitle");
-        QLabel *sub = new QLabel("Origin Edge monokrom grafit (#f8fafc / #0f172a) tasarım dili, çizgi ikon seti ve ortalanmış görev çubuğu");
+        QLabel *sub = new QLabel("Açık ya da koyu görünümü seçin. Renkler, simgeler, panel ve duvar kâğıdı birlikte değişir.");
         sub->setObjectName("subtitle");
+        sub->setWordWrap(true);
         hdr->addWidget(title);
         hdr->addWidget(sub);
         lay->addLayout(hdr);
 
-        QLabel *themeStatus = new QLabel("");
-        themeStatus->setStyleSheet("color: #16a34a; font-family: 'JetBrains Mono', monospace; font-size: 12px;");
+        QLabel *durum = new QLabel("");
+        durum->setObjectName("okText");
 
-        QFrame *oeCard = new QFrame();
-        oeCard->setObjectName("card");
-        QVBoxLayout *oeLay = new QVBoxLayout(oeCard);
-        oeLay->setContentsMargins(20, 20, 20, 20);
-        oeLay->setSpacing(12);
+        struct Secenek { QString id, ad, onizleme; };
+        const QList<Secenek> secenekler = {
+            {"acik", "Açık", "/usr/share/plasma/look-and-feel/org.originedge.edgeos.desktop/contents/previews/preview.png"},
+            {"koyu", "Koyu", "/usr/share/plasma/look-and-feel/org.originedge.edgeos.koyu.desktop/contents/previews/preview.png"},
+            {"otomatik", "Otomatik", ""},
+        };
 
-        QHBoxLayout *oeTop = new QHBoxLayout();
-        QLabel *oeTitle = new QLabel("Origin Edge Monochrome Graphite (Öntanımlı)");
-        oeTitle->setObjectName("cardTitle");
-        QLabel *oeBadge = new QLabel("#f8fafc · OriginEdge-Icons");
-        oeBadge->setObjectName("keycap");
-        oeTop->addWidget(oeTitle);
-        oeTop->addStretch();
-        oeTop->addWidget(oeBadge);
-        oeLay->addLayout(oeTop);
+        QHBoxLayout *kartlar = new QHBoxLayout();
+        kartlar->setSpacing(12);
+        for (const auto &sc : secenekler) {
+            QToolButton *k = new QToolButton();
+            k->setObjectName("themeCard");
+            k->setProperty("gorunum", sc.id);
+            k->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+            k->setCursor(Qt::PointingHandCursor);
+            k->setText(sc.ad);
+            k->setIconSize(QSize(200, 113));
+            k->setMinimumWidth(224);
 
-        QLabel *oeDesc = new QLabel("Origin Edge resmi logosundan referans alınan #f8fafc karbon-grafit yüzeyler, saf beyaz (#0f172a) vurgu, 1.5px çizgi ikonlar ve korunan orijinal uygulama logoları");
-        oeDesc->setObjectName("subtitle");
-        oeDesc->setWordWrap(true);
-        oeLay->addWidget(oeDesc);
+            // Önizleme: otomatik için yarı açık, yarı koyu
+            const qreal dpr = qApp->devicePixelRatio();
+            QPixmap pm(int(200 * dpr), int(113 * dpr));
+            pm.setDevicePixelRatio(dpr);
+            pm.fill(Qt::transparent);
+            {
+                QPainter p(&pm);
+                p.setRenderHint(QPainter::Antialiasing);
+                p.setRenderHint(QPainter::SmoothPixmapTransform);
+                QPainterPath yol;
+                yol.addRoundedRect(QRectF(0, 0, 200, 113), 9, 9);
+                p.setClipPath(yol);
+                const QRectF tam(0, 0, 200, 113);
+                if (sc.id != "otomatik") {
+                    p.drawPixmap(tam, QPixmap(sc.onizleme), QRectF());
+                } else {
+                    QPixmap a(secenekler[0].onizleme), b(secenekler[1].onizleme);
+                    p.drawPixmap(tam, a, QRectF());
+                    QPainterPath sag;
+                    sag.moveTo(120, 0); sag.lineTo(200, 0); sag.lineTo(200, 113); sag.lineTo(80, 113); sag.closeSubpath();
+                    p.setClipPath(sag, Qt::IntersectClip);
+                    p.drawPixmap(tam, b, QRectF());
+                }
+            }
+            k->setIcon(QIcon(pm));
 
-        QHBoxLayout *oeActions = new QHBoxLayout();
-        QPushButton *applyOriginBtn = new QPushButton("Origin Edge temasını uygula");
-        applyOriginBtn->setObjectName("primaryBtn");
-        connect(applyOriginBtn, &QPushButton::clicked, this, [themeStatus]() {
-            runCmd("/usr/bin/edgeos-apply-theme origin-edge");
-            themeStatus->setText("Origin Edge Graphite teması, resmi duvar kağıdı ve ikon seti uygulandı");
+            connect(k, &QToolButton::clicked, this, [this, id = sc.id, durum]() {
+                if (id == "otomatik") {
+                    runCmd("kwriteconfig6 --notify --file kdeglobals --group KDE --key AutomaticLookAndFeel true");
+                    durum->setText("Görünüm gün ışığına göre kendiliğinden açık ya da koyu olacak");
+                } else {
+                    runCmd("kwriteconfig6 --notify --file kdeglobals --group KDE --key AutomaticLookAndFeel false");
+                    QProcess::startDetached("/usr/bin/plasma-apply-lookandfeel",
+                        {"-a", id == "koyu" ? "org.originedge.edgeos.koyu.desktop" : "org.originedge.edgeos.desktop"});
+                    durum->setText(id == "koyu" ? "Koyu görünüm uygulandı" : "Açık görünüm uygulandı");
+                }
+                temaKartiSec(id);
+            });
+            temaKartlari.append(k);
+            kartlar->addWidget(k);
+        }
+        kartlar->addStretch();
+        lay->addLayout(kartlar);
+        temaKartiSec(seciliGorunum());
+
+        QFrame *ekCard = new QFrame();
+        ekCard->setObjectName("card");
+        QVBoxLayout *ekLay = new QVBoxLayout(ekCard);
+        ekLay->setContentsMargins(20, 16, 20, 16);
+        ekLay->setSpacing(10);
+        QLabel *ekTitle = new QLabel("Daha fazla ayar");
+        ekTitle->setObjectName("cardTitle");
+        ekLay->addWidget(ekTitle);
+        QHBoxLayout *ekBtns = new QHBoxLayout();
+        ekBtns->setSpacing(8);
+        QPushButton *duvarBtn = new QPushButton("Duvar kâğıdı");
+        QPushButton *ekranBtn = new QPushButton("Ekran ve çözünürlük");
+        QPushButton *geceBtn = new QPushButton("Gece ışığı");
+        connect(duvarBtn, &QPushButton::clicked, this, []() {
+            QProcess::startDetached("/usr/bin/systemsettings", {"kcm_wallpaper"});
         });
-        oeActions->addWidget(applyOriginBtn);
-        oeActions->addStretch();
-        oeLay->addLayout(oeActions);
-        lay->addWidget(oeCard);
-
-        QFrame *altCard = new QFrame();
-        altCard->setObjectName("card");
-        QVBoxLayout *altLay = new QVBoxLayout(altCard);
-        altLay->setContentsMargins(20, 16, 20, 16);
-        altLay->setSpacing(12);
-
-        QLabel *altTitle = new QLabel("Diğer görünüm seçenekleri");
-        altTitle->setObjectName("cardTitle");
-        altLay->addWidget(altTitle);
-
-        QHBoxLayout *altBtns = new QHBoxLayout();
-        altBtns->setSpacing(8);
-        QPushButton *darkBtn = new QPushButton("Breeze Koyu");
-        QPushButton *lightBtn = new QPushButton("Breeze Açık");
-        QPushButton *kscreenBtn = new QPushButton("Ekran çözünürlüğü");
-
-        connect(darkBtn, &QPushButton::clicked, this, [themeStatus]() {
-            runCmd("/usr/bin/edgeos-apply-theme breeze-dark");
-            themeStatus->setText("Breeze Koyu tema uygulandı");
-        });
-        connect(lightBtn, &QPushButton::clicked, this, [themeStatus]() {
-            runCmd("/usr/bin/edgeos-apply-theme breeze-light");
-            themeStatus->setText("Breeze Açık tema uygulandı");
-        });
-        connect(kscreenBtn, &QPushButton::clicked, this, []() {
+        connect(ekranBtn, &QPushButton::clicked, this, []() {
             QProcess::startDetached("/usr/bin/systemsettings", {"kcm_kscreen"});
         });
+        connect(geceBtn, &QPushButton::clicked, this, []() {
+            QProcess::startDetached("/usr/bin/systemsettings", {"kcm_nightlight"});
+        });
+        ekBtns->addWidget(duvarBtn);
+        ekBtns->addWidget(ekranBtn);
+        ekBtns->addWidget(geceBtn);
+        ekBtns->addStretch();
+        ekLay->addLayout(ekBtns);
+        lay->addWidget(ekCard);
 
-        altBtns->addWidget(darkBtn);
-        altBtns->addWidget(lightBtn);
-        altBtns->addWidget(kscreenBtn);
-        altBtns->addStretch();
-        altLay->addLayout(altBtns);
-        lay->addWidget(altCard);
-
-        lay->addWidget(themeStatus);
+        lay->addWidget(durum);
         lay->addStretch();
         return w;
     }

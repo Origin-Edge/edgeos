@@ -1,13 +1,15 @@
 [General]
 BrowserApplication=nate-browser.desktop
-ColorScheme=OriginEdge
+ColorScheme=EdgeOS
 TerminalApplication=konsole
 TerminalService=org.kde.konsole.desktop
 
 [Icons]
-Theme=OriginEdge-Icons
+Theme=EdgeOS
 
 [KDE]
 LookAndFeelPackage=org.originedge.edgeos.desktop
+DefaultLightLookAndFeel=org.originedge.edgeos.desktop
+DefaultDarkLookAndFeel=org.originedge.edgeos.koyu.desktop
 SingleClick=false
 widgetStyle=Breeze

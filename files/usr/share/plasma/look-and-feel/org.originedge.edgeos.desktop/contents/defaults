@@ -1,17 +1,21 @@
 [kdeglobals][General]
-ColorScheme=OriginEdge
+ColorScheme=EdgeOS
 
 [kdeglobals][KDE]
 widgetStyle=Breeze
 
 [kdeglobals][Icons]
-Theme=breeze-dark
+Theme=EdgeOS
 
 [plasmarc][Theme]
-name=breeze-dark
+name=default
 
-[Wallpaper]
-Image=EdgeOS
+[kwinrc][org.kde.kdecoration2]
+library=org.kde.breeze
+theme=Breeze
 
 [kcminputrc][Mouse]
 cursorTheme=breeze_cursors
+
+[Wallpaper]
+Image=EdgeOS

@@ -1,0 +1,17 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Origin Edge",
+                "Email": "destek@oedge.xyz"
+            }
+        ],
+        "Description": "EdgeOS koyu görünüm — Origin Edge Ürün tasarım dili",
+        "Id": "org.originedge.edgeos.koyu.desktop",
+        "License": "MIT",
+        "Name": "EdgeOS Koyu",
+        "Website": "https://oedge.xyz"
+    },
+    "X-Plasma-APIVersion": "2"
+}

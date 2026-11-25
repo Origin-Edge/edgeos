@@ -3,15 +3,15 @@
     "KPlugin": {
         "Authors": [
             {
-                "Email": "destek@oedge.xyz",
-                "Name": "Origin Edge"
+                "Name": "Origin Edge",
+                "Email": "destek@oedge.xyz"
             }
         ],
-        "Category": "",
-        "Description": "Edge OS by Origin Edge Official KDE Plasma Theme",
+        "Description": "EdgeOS açık görünüm — Origin Edge Ürün tasarım dili",
         "Id": "org.originedge.edgeos.desktop",
-        "License": "GPLv3",
-        "Name": "Origin Edge (Edge OS)",
+        "License": "MIT",
+        "Name": "EdgeOS",
         "Website": "https://oedge.xyz"
-    }
+    },
+    "X-Plasma-APIVersion": "2"
 }

@@ -28,6 +28,8 @@
 #include <QPainter>
 #include <QPixmap>
 #include <QSvgRenderer>
+#include <QStyleHints>
+#include <QTimer>
 #include "urun_tema.h"
 #include <QRegularExpression>
 
@@ -131,11 +133,12 @@ public:
 class EdgeFileWindow : public QMainWindow {
 public:
     EdgeFileWindow(const QString &initialPath = QDir::homePath()) {
-        setWindowTitle("EdgeFile — Edge OS by Origin Edge");
+        setWindowTitle("Dosyalar");
         setMinimumSize(1040, 640);
         resize(1160, 720);
 
-        applyUnslopTheme(false);
+        isDark = sistemKoyu();
+        applyUnslopTheme(isDark);
 
         QWidget *root = new QWidget(this);
         root->setObjectName("rootWidget");
@@ -145,7 +148,7 @@ public:
         mainLayout->setContentsMargins(0, 0, 0, 0);
         mainLayout->setSpacing(0);
 
-        // 1. Unslop Graphite Sidebar (248px, #ffffff, 16px padding)
+        // Kenar çubuğu (248 px)
         QFrame *sidebar = new QFrame(root);
         sidebar->setObjectName("sidebar");
         sidebar->setFixedWidth(248);
@@ -156,32 +159,26 @@ public:
         QHBoxLayout *brandRow = new QHBoxLayout();
         brandRow->setContentsMargins(6, 0, 4, 0);
         brandRow->setSpacing(10);
-        QLabel *logoLbl = new QLabel();
+        logoLbl = new QLabel();
         logoLbl->setFixedSize(22, 22);
-        if (QFile::exists("/usr/share/pixmaps/origin-edge-mark-koyu.svg")) {
-            QSvgRenderer r(QStringLiteral("/usr/share/pixmaps/origin-edge-mark-koyu.svg"));
-            QPixmap pm(22, 22);
-            pm.fill(Qt::transparent);
-            QPainter p(&pm);
-            r.render(&p);
-            logoLbl->setPixmap(pm);
-        }
+        logoCiz();
         QLabel *bName = new QLabel("EdgeFile");
         bName->setObjectName("wordmark");
-        QLabel *bMeta = new QLabel("Origin Edge");
-        bMeta->setObjectName("mutedCaption");
 
-        QPushButton *themeBtn = new QPushButton("Görünüm");
+        QPushButton *themeBtn = new QPushButton(lucideIcon("<path d='M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z'/>"), "");
         themeBtn->setObjectName("quietBtn");
-        themeBtn->setFixedHeight(28);
+        themeBtn->setFixedSize(30, 28);
+        themeBtn->setToolTip("Açık / koyu arasında geçiş (yalnız bu pencere)");
         connect(themeBtn, &QPushButton::clicked, this, [this]() {
+            elleSecildi = true;
             isDark = !isDark;
             applyUnslopTheme(isDark);
         });
+        // Plasma'da açık/koyu değişince izle (elle seçilmediyse)
+        connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, [this]() { sistemiIzle(); });
 
         brandRow->addWidget(logoLbl);
         brandRow->addWidget(bName);
-        brandRow->addWidget(bMeta);
         brandRow->addStretch();
         brandRow->addWidget(themeBtn);
         sideLay->addLayout(brandRow);
@@ -227,7 +224,7 @@ public:
         dLay->setContentsMargins(14, 12, 14, 12);
         dLay->setSpacing(8);
 
-        QStorageInfo storage("/");
+        QStorageInfo storage(QDir::homePath());   // atomik sistemde "/" salt okunur katman; gerçek disk /var altında
         double totalGb = storage.bytesTotal() / (1024.0 * 1024.0 * 1024.0);
         double freeGb = storage.bytesAvailable() / (1024.0 * 1024.0 * 1024.0);
         double usedGb = totalGb - freeGb;
@@ -346,6 +343,7 @@ public:
         treeView->setSelectionMode(QAbstractItemView::SingleSelection);
         treeView->setContextMenuPolicy(Qt::CustomContextMenu);
         treeView->setUniformRowHeights(true);
+        treeView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         treeView->header()->setStretchLastSection(true);
         treeView->header()->resizeSection(0, 340);
         treeView->header()->resizeSection(1, 100);
@@ -455,7 +453,7 @@ public:
         QHBoxLayout *footer = new QHBoxLayout();
         statusLbl = new QLabel("Öntanımlı eşleşmeler: Web ve PDF dosyaları Nate Browser ile, kod ve AI belgeleri ORBITAL ile açılır");
         statusLbl->setObjectName("mutedCaption");
-        QLabel *creditLbl = new QLabel("Edge OS by Origin Edge");
+        QLabel *creditLbl = new QLabel("EdgeOS · Origin Edge");
         creditLbl->setObjectName("monoCaption");
         footer->addWidget(statusLbl);
         footer->addStretch();
@@ -470,6 +468,36 @@ public:
 
 private:
     bool isDark = false;
+    bool elleSecildi = false;
+    QLabel *logoLbl = nullptr;
+
+    void logoCiz() {
+        const QString yol = logoYolu(isDark);
+        if (!logoLbl || !QFile::exists(yol)) return;
+        QSvgRenderer r(yol);
+        const qreal dpr = qApp->devicePixelRatio();
+        QPixmap pm(int(22 * dpr), int(22 * dpr));
+        pm.setDevicePixelRatio(dpr);
+        pm.fill(Qt::transparent);
+        QPainter p(&pm);
+        r.render(&p, QRectF(0, 0, 22, 22));
+        logoLbl->setPixmap(pm);
+    }
+
+    void sistemiIzle() {
+        if (elleSecildi) return;
+        const bool k = sistemKoyu();
+        if (k != isDark) { isDark = k; applyUnslopTheme(isDark); }
+    }
+
+protected:
+    void changeEvent(QEvent *e) override {
+        if (e->type() == QEvent::ApplicationPaletteChange || e->type() == QEvent::ThemeChange)
+            QTimer::singleShot(0, this, [this]() { sistemiIzle(); });
+        QMainWindow::changeEvent(e);
+    }
+
+private:
     EdgeFileSystemModel *fsModel;
     QTreeView *treeView;
     QLineEdit *pathEdit;
@@ -495,6 +523,7 @@ private:
 
     void applyUnslopTheme(bool dark) {
         setStyleSheet(urunTema(dark));
+        logoCiz();
     }
 
     void navigateTo(const QString &path, bool recordHistory = true) {
@@ -628,7 +657,6 @@ private:
     void showContextMenu(const QString &targetPath, const QPoint &globalPos) {
         selectedPath = targetPath;
         QMenu menu(this);
-        menu.setStyleSheet("QMenu { background-color: #ffffff; color: #0f172a; border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px; } QMenu::item { padding: 6px 16px; border-radius: 5px; font-size: 13px; } QMenu::item:selected { background-color: #f1f5f9; color: #0f172a; }");
         if (isDesktopEntryFile(targetPath)) {
             menu.addAction("Uygulamayı çalıştır", [this, targetPath]() { openFileSmart(targetPath); });
             menu.addSeparator();

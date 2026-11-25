@@ -1,9 +1,11 @@
 [General]
-ColorScheme=OriginEdge
+ColorScheme=EdgeOS
 BrowserApplication=nate-browser.desktop
 
 [Icons]
-Theme=OriginEdge-Icons
+Theme=EdgeOS
 
 [KDE]
 LookAndFeelPackage=org.originedge.edgeos.desktop
+DefaultLightLookAndFeel=org.originedge.edgeos.desktop
+DefaultDarkLookAndFeel=org.originedge.edgeos.koyu.desktop

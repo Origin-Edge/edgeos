@@ -1,0 +1,21 @@
+[Icon Theme]
+Name=EdgeOS
+Comment=EdgeOS — Origin Edge Ürün tasarım dili (açık)
+Inherits=breeze,hicolor
+Example=folder
+DisplayDepth=32
+Directories=apps/scalable,places/scalable
+
+[apps/scalable]
+Size=64
+Context=Applications
+MinSize=16
+MaxSize=512
+Type=Scalable
+
+[places/scalable]
+Size=64
+Context=Places
+MinSize=16
+MaxSize=512
+Type=Scalable
